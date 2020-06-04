@@ -11,7 +11,7 @@
 	File paths are folder paths which are terminated in "/" + file
 */
 
-var base_folder = "/";
+var base_folder = "";
 var current_folder = base_folder;
 
 function get_full_path(path) {
@@ -81,12 +81,27 @@ function write(path, str, overwrite = false) {
 		
 	}
 }
+function new_dir(path, overwrite)
+{
+	var fpath = get_full_path(path);
+	var directory = gdir(fpath);
+	fpath += "/";
+	if (localStorage.getItem(fpath) == null)
+	{	
+		localStorage.setItem(fpath,directory);
+		write(directory,"<br>" + fpath);
+	}
+	else if (overwrite) {//it exists, and destuctive
+		clear(fpath);
+	}
+}
+
 // Path is / seperated
 function new_file(path, overwrite, is_dir = false) {
 
 	var fpath = get_full_path(path);
-
-	if (localStorage.getItem(fpath) == null) {
+	if (localStorage.getItem(fpath) == null ||
+		(is_dir && localStorage.getItem(fpath+"/") == null )) {
 		var directory = gdir(fpath);
 		var file = gfile(fpath);
 
