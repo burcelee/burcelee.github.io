@@ -1,13 +1,4 @@
-var help_message = "Supported Commands:"+
-			"<br>clear: clears screen"+
-			"<br>help:<i>guess</i>"+
-			"<br>file [name] [content]:create a new file named [name] containing [content]"+
-			"<br>delete [name]...:delete files named"+
-			"<br>list:list all files"+
-			"<br>reset: reset whole filesystem"+
-			"<br>print: print the contents of a file"+
-			"<br>run [file]: run javascript in file"+
-			"<br>info: list OS information<br>";
+
 //shell app
 var cbuf = "/temp/command_buffer.POS";
 var current_line = "";
@@ -27,78 +18,6 @@ class ShellExtension
 		{
 			write(f0,"hmm... that doesn't seem quite right<br>");
 		}
-		/*var parts = command_string.split(" ");
-		if (parts.length == 0)
-			return;
-		if (parts[0] == "clear") {
-			clear(f0);
-		}
-		else if (parts[0] == "help") {
-			write(f0,help_message);
-		}
-		else if (parts[0] == "file") {
-			
-		}
-		else if (parts[0] == "delete") {
-			if (parts.length == 1) {
-				write(f0,"why no file name?<br>");
-				return;
-			}
-			for (var i=1;i<parts.length;i++) {
-				delete_file(parts[i]);
-			}
-		}
-		else if (parts[0] == "ls") {
-			var files = get_file_list();
-			for (var i = 0; i < files.length; i++) {
-				files[i] = gfile(files[i]);
-			}
-			write(f0,files.join("<br>"));
-			if (files.length > 0)
-				write(f0,"<br>");
-		}
-		else if (parts[0] == "reset") {
-			wipe_filesystem();
-			clear(f0);
-		}
-		else if (parts[0] == "info") {
-			write(f0,"POS Rev. " + POS_revision+ "<br>");
-		}
-		else if (parts[0] == "cd") {
-			if (parts.length == 1) {
-				write(f0,"why no directory name?<br>")
-				return;
-			}
-			if (parts[1].charAt(parts[1].length -1) != "/") {
-				parts[1] += "/";
-			}
-			change_directory(parts[1]);
-		}
-		else if (parts[0] == "run") {
-			pos_exec(parts[1], parts.slice(1));
-		}
-		else if (parts[0] == "print") {
-			if (parts.length == 1) {
-				write(f0,"print what?<br>");
-				return;
-			}
-			var data = read(parts[1]);
-			if (data == null) {
-				write(f0,"no such file, my man<br>");
-				return;
-			}
-			write(f0, data + "<br>");
-		}
-		else if (parts[0] == "dir") {
-			if (parts.length == 1) {
-				write(f0,"why no directory name?<br>")
-				return;
-			}
-			new_file(parts[1],true,true);
-		}
-		else {
-			write(f0,"?? Either you're crazy or I'm broken ??<br>");
-		}*/
 	}
 
 	static terminal_input_handler(e) 
