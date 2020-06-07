@@ -1,6 +1,6 @@
-var help_message = "Commands:"+
+var help_message = "Supported Commands:"+
 			"<br>clear: clears screen"+
-			"<br>help:guess"+
+			"<br>help:<i>guess</i>"+
 			"<br>file [name] [content]:create a new file named [name] containing [content]"+
 			"<br>delete [name]...:delete files named"+
 			"<br>list:list all files"+
@@ -15,10 +15,19 @@ var line_offset = 0;
 
 class ShellExtension
 {
-
 	static handle_shell_command(command_string) 
 	{
 		var parts = command_string.split(" ");
+		var exec_string = "/bin/" + parts[0];
+		if (pos_file_exists(exec_string))
+		{
+			pos_exec("/bin/"+parts[0],parts.slice(1));
+		}
+		else
+		{
+			write(f0,"hmm... that doesn't seem quite right<br>");
+		}
+		/*var parts = command_string.split(" ");
 		if (parts.length == 0)
 			return;
 		if (parts[0] == "clear") {
@@ -28,17 +37,7 @@ class ShellExtension
 			write(f0,help_message);
 		}
 		else if (parts[0] == "file") {
-			if (parts.length == 1) {
-				write(f0,"why no file name?<br>")
-				return;
-			}
-			new_file(parts[1],true);
-			if (parts.length > 2) {
-				write(parts[1],parts[2]);
-				for (var i=3;i < parts.length; i++) {
-					write(parts[1]," " + parts[i]);
-				}
-			}
+			
 		}
 		else if (parts[0] == "delete") {
 			if (parts.length == 1) {
@@ -49,7 +48,7 @@ class ShellExtension
 				delete_file(parts[i]);
 			}
 		}
-		else if (parts[0] == "list") {
+		else if (parts[0] == "ls") {
 			var files = get_file_list();
 			for (var i = 0; i < files.length; i++) {
 				files[i] = gfile(files[i]);
@@ -76,20 +75,7 @@ class ShellExtension
 			change_directory(parts[1]);
 		}
 		else if (parts[0] == "run") {
-			if (parts.length == 1) {
-				write(f0,"why no app name?<br>")
-				return;
-			}
-			var app_content = read(parts[1]);
-			var contents = read(f0);
-			var app = document.createElement('script');
-			app.id = parts[1];
-			app.textContent = app_content;
-			//insert the return code into the app
-			app.textContent += 	"var OS_app = document.getElementById('"+
-								parts[1]+ "');"+
-								"document.getElementById('terminal').removeChild(OS_app);";
-			document.getElementById('terminal').appendChild(app);
+			pos_exec(parts[1], parts.slice(1));
 		}
 		else if (parts[0] == "print") {
 			if (parts.length == 1) {
@@ -112,7 +98,7 @@ class ShellExtension
 		}
 		else {
 			write(f0,"?? Either you're crazy or I'm broken ??<br>");
-		}
+		}*/
 	}
 
 	static terminal_input_handler(e) 
@@ -182,13 +168,6 @@ class ShellExtension
 
 	load()
 	{
-		//Clear command. Currently duplicating hardcoded clear.
-		{
-			var filepath = "/bin/clear";
-			new_file(filepath, true);
-			write(filepath, " clear(f0);");
-		}
-
 		{
 			new_file(cbuf,false);
 			is_bind_key_input(ShellExtension.terminal_input_handler);

@@ -53,6 +53,11 @@ function read(path) {
 	return localStorage.getItem(fpath);
 }
 
+function pos_file_exists(path)
+{
+	return read(path) != null;
+}
+
 function write(path, str, overwrite = false) {
 	var fpath = get_full_path(path);
 
@@ -150,8 +155,12 @@ function move_file(old_path, new_path) {
 
 function change_directory(path) {
 	var fpath = get_full_path(path);
-
-	current_folder = fpath;
+	if (pos_file_exists(fpath))
+	{
+		current_folder = fpath;
+		return true;
+	}
+	return false;
 }
 
 function clear(file) {

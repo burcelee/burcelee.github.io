@@ -8,12 +8,11 @@ var welcome_message = 	"######...........................######...............##
 						"..............................................................##........................<br>"+
 						"..............................................................##........................<br>"+
 						"..........................................................######........................<br>"+
-						"powered by the portable operating system<br>"+
-						"rick rodgers 2016<br>"+
-						"compatible with: google chrome<br>"+
+						"rick rodgers 2020<br>"+
+						"compatible with: google chrome, firefox, edge. God help you on mobile<br>"+
 						"use the help command for more options<br>";
 
-class WelcomeExtension 
+class WelcomeExtension
 {
 	load()
 	{

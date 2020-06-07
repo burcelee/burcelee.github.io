@@ -16,6 +16,11 @@
 </head>
 <body>
 <div class='terminal' id='terminal'></div>
+<!-- execution div is used to append dynamic scripts to run.
+Use of a new div allows dynamic scripts to modify the terminal
+div at will without having to worry about destroying themselves.
+-->
+<div class='execution' id='execution'></div>
 <script src="scripts/jquery-311.js"></script>
 
 <script src="scripts/pos_fs.js"></script>
@@ -23,6 +28,7 @@
 <script src="scripts/pos_main.js"></script>
 <script src="scripts/extensions/welcome_extension.js"></script>
 <script src="scripts/extensions/shell_extension.js"></script>
+<script src="scripts/extensions/utilities_extension.js"></script>
 
 </body>
 </html>
