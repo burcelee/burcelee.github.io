@@ -29,6 +29,32 @@ function add_function_file(filepath, f)
 	write(filepath, "function __main(args){call_function_by_key(\""+key+"\", args);}");
 }
 
+var app_return_callbacks = [];
+function pos_start_app(callback)
+{
+	app_return_callbacks.push(callback);
+	// Return length as app_id
+	return app_return_callbacks.length;
+}
+
+function pos_end_app()
+{
+	// Pop the current return callback, as it is no
+	// longer needed
+	app_return_callbacks.pop();
+	// Now call the parent return callback.
+	callback = app_return_callbacks[app_return_callbacks.length - 1];
+	if (callback != null)
+	{
+		callback();
+	}
+}
+
+function pos_current_app_id()
+{
+	return app_return_callbacks.length;
+}
+
 function pos_exec(program, args)
 {
 	var argsString = "var args = [";
@@ -68,7 +94,7 @@ window.onload = function() {
 	new_file(f0,false);
 
 	//setup input system
-	is_init();
+	initialize_input();
 	
 	//load extensions
 	for (var i=0; i < extensions.length; ++i)

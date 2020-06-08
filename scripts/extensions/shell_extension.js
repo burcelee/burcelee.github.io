@@ -6,6 +6,13 @@ var line_offset = 0;
 
 class ShellExtension
 {
+	app_id = -1;
+	static return_callback()
+	{
+		current_line = "";
+		write(f0,">");
+		line_offset = 0;
+	}
 	static handle_shell_command(command_string) 
 	{
 		var parts = command_string.split(" ");
@@ -17,6 +24,13 @@ class ShellExtension
 		else
 		{
 			write(f0,"hmm... that doesn't seem quite right<br>");
+		}
+		// Manually call return callback if executed program did not
+		// register itself as an app. If it is an app, return callback
+		// will be called when it exits.
+		if (ShellExtension.app_id == pos_current_app_id())
+		{
+			ShellExtension.return_callback();
 		}
 	}
 
@@ -34,9 +48,6 @@ class ShellExtension
 			write(cbuf, current_line);
 			write(f0,"<br>");
 			ShellExtension.handle_shell_command(current_line);
-			current_line = "";
-			write(f0,">");
-			line_offset = 0;
 		}
 		else if (e.key == "Delete" || e.key == "Backspace" || e.key == "Del") {
 			if (current_line != "") {
@@ -89,12 +100,11 @@ class ShellExtension
 	{
 		{
 			new_file(cbuf,false);
-			is_bind_key_input(ShellExtension.terminal_input_handler);
+			ShellExtension.app_id = pos_start_app(ShellExtension.return_callback); // currently, no way to end this app.
+			register_input_handler(ShellExtension.terminal_input_handler);
 			write(f0,">");
 		}
 	}
 }
 
 add_extension(new ShellExtension());
-
-//setup prompt

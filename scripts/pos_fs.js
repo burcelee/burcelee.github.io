@@ -83,7 +83,7 @@ function write(path, str, overwrite = false) {
 		else {
 			document.getElementById('terminal').innerHTML += str;
 		}
-		
+		document.getElementById('terminal').scrollTop = document.getElementById('terminal').scrollHeight
 	}
 }
 function new_dir(path, overwrite)

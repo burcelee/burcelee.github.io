@@ -117,9 +117,22 @@ class UtilitiesExtension
 	{
 		write(f0, current_folder + "<br>");
 	}
+	static handle(e)
+	{
+		if (e.key == "Escape")
+		{
+			unregister_input_handler();
+			pos_end_app();
+		}
+		write(f0, "__" + e.key);
+	}
+	static weirdo(args)
+	{
+		pos_start_app(null);
+		register_input_handler(UtilitiesExtension.handle);
+	}
 	load()
 	{
-		//Clear command. Currently duplicating hardcoded clear.
 		add_function_file("/bin/clear", UtilitiesExtension.clear);
 		add_function_file("/bin/help", UtilitiesExtension.help);
 		add_function_file("/bin/file", UtilitiesExtension.file);
@@ -132,6 +145,7 @@ class UtilitiesExtension
 		add_function_file("/bin/mkdir", UtilitiesExtension.mkdir);
 		add_function_file("/bin/exec", UtilitiesExtension.exec);
 		add_function_file("/bin/pwd", UtilitiesExtension.pwd);
+		add_function_file("/bin/weirdo", UtilitiesExtension.weirdo);
 	}
 }
 add_extension(new UtilitiesExtension());
