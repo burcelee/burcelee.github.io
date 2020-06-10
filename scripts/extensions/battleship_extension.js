@@ -18,7 +18,23 @@ class Ship
 			this.hits.push(false);
 		}
 	}
-	shoot(x, y)
+	get_occupied_positions()
+	{
+		var positions = []
+		for (var i =0; i < this.length; i++)
+		{
+			if (this.r == "w")
+			{	
+				positions.push([this.x+i, this.y]);
+			}
+			else
+			{
+				positions.push([this.x, this.y+i]);
+			}
+		}
+		return positions;
+	}
+	shoot(x, y) // update to use get_occupied_positions
 	{
 		var local_x = x - this.x;
 		var local_y = y - this.y;
@@ -40,22 +56,46 @@ class Ship
 			}
 		}	
 	}
-	add_to_board(board)
+	is_dead(x,y)
+	{
+		for (var i = 0; i < this.hits.length; i++)
+		{
+			if (!this.hits[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	add_to_board(board, board_data, is_player)
 	{
 		for (var i = 0; i < this.length; i++)
 		{
-			var glyph = "<span style='color:orange;'>" + this.glyph  + "</span>";
+			if (!this.hits[i] && !is_player)
+			{
+				continue;
+			}
+			var raw_glyph = is_player ? this.glyph : "X";
+			var glyph = "<span style='color:lightgray;'>" + raw_glyph  + "</span>";
 			if (this.hits[i])
 			{
-				glyph = "<span style='color:red;'>" + this.glyph  + "</span>";
+				glyph = "<span style='color:red;'>" + raw_glyph  + "</span>";
 			}
 			if (this.r == "w")
 			{
-				board[this.x+i][this.y] = glyph;
+				var x = this.x + i;
+				if (x < board.side_length)
+				{
+					board_data[x][this.y] = glyph;
+				}
 			}
 			else if (this.r == "h")
 			{
-				board[this.x][this.y+i] = glyph;
+				var y = this.y + i;
+				if (y < board.side_length)
+				{
+					board_data[this.x][this.y+i] = glyph;
+				}
 			}
 		}
 	}
@@ -68,8 +108,13 @@ class BattleshipBoard
 	current_selection = [0,0];
 	side_length = 10;
 	last_shot = null
-	constructor()
+	status = "ALL CLEAR";
+	is_player = false;
+	num_missile = 0;
+	num_ships_destroyed = 0;
+	constructor(is_player)
 	{
+		this.is_player = is_player;
 	}
 	move_selection_up()
 	{
@@ -91,12 +136,45 @@ class BattleshipBoard
 		var x = this.current_selection[0]-1;
 		this.current_selection[0] = Math.min(Math.max(0, x),this.side_length-1);
 	}
+	check_valid()
+	{
+		var occupied_places = new Set();
+		for (var i = 0; i < this.ships.length; i++)
+		{
+			var ship_places = this.ships[i].get_occupied_positions();
+			for (var j = 0; j < ship_places.length; j++)
+			{
+				var pos = ship_places[j];
+				if (pos[0] >= this.side_length || pos[1] >= this.side_length)
+				{
+					return false;
+				}
+				var hash = pos[1]*this.side_length + pos[0];
+				if (occupied_places.has(hash))
+				{
+					return false;
+				}
+				occupied_places.add(hash);
+			}
+		}
+		return true;
+	}
 	place_ship(ship)
 	{
 		this.ships.push(ship);
 	}
 	shoot(x, y)
 	{
+		for (var i = 0; i < this.shots.length; i++)
+		{
+			var shot = this.shots[i];
+			if (shot[0] == x && shot[1] == y)
+			{
+				// SHOT IS A REPEAT
+				return;
+			}
+		}
+		this.num_missile++;
 		var shot = [x,y];
 		this.shots.push(shot);
 		this.last_shot = shot;
@@ -104,9 +182,45 @@ class BattleshipBoard
 		{
 			if (this.ships[i].shoot(x,y))
 			{
-				break;
+				var is_destroyed = this.ships[i].is_dead();
+				if (!is_destroyed)
+				{
+					if (this.is_player)
+					{
+						this.status =  "<span style='color:red;'>INCOMING........." + this.ships[i].name + " HAS BEEN HIT!</span>";
+					}
+					else
+					{
+						this.status = "<span style='color:red;'>FOXTROT-" + this.num_missile + " AWAY.........HIT!</span>";
+					}
+				}
+				else
+				{
+					this.num_ships_destroyed++;
+					if (this.is_player)
+					{
+						this.status =  "<span style='color:red;'>INCOMING........." + this.ships[i].name + " HAS BEEN COMPLETELY DESTROYED!</span>";
+					}
+					else
+					{
+						this.status = "<span style='color:red;'>FOXTROT-" + this.num_missile + " AWAY.........ENEMY SHIP DESTROYED!</span>";
+					}
+				}
+				return;
 			}
 		}
+		if (this.is_player)
+		{
+			this.status = "<span style='color:yellow;'>INCOMING......... MISS!</span>"
+		}
+		else
+		{
+			this.status = "<span style='color:yellow;'>FOXTROT-" + this.num_missile + " AWAY.........NEGATIVE IMPACT!</span>";
+		}
+	}
+	has_lost()
+	{
+		return this.num_ships_destroyed == this.ships.length;
 	}
 	print_board()
 	{
@@ -133,10 +247,10 @@ class BattleshipBoard
 		}
 		for (var s = 0; s < this.ships.length; s++)
 		{
-			this.ships[s].add_to_board(board_data);
+			this.ships[s].add_to_board(this, board_data, this.is_player);
 		}
 
-		var s = "<br><br>"
+		var s = "<BR>"
 		for (var y = 0; y < this.side_length*3; y++)
 		{
 			for (var x = 0; x < this.side_length*3; x++)
@@ -163,9 +277,9 @@ class BattleshipBoard
 
 class USNBattleshipBoard extends BattleshipBoard
 {
-	constructor()
+	constructor(is_player)
 	{
-		super();
+		super(is_player);
 		this.placeable_ships = 
 		[
 			new Ship("FLEET CARRIER", "USS ENTERPRISE", "C", 5),
@@ -179,9 +293,9 @@ class USNBattleshipBoard extends BattleshipBoard
 
 class VMFBattleshipBoard extends BattleshipBoard
 {
-		constructor()
+		constructor(is_player)
 	{
-		super();
+		super(is_player);
 		this.placeable_ships = 
 		[
 			new Ship("FLEET CARRIER", "USSRS ADMIRAL KUZNETSOV", "C", 5),
@@ -255,6 +369,7 @@ class ShipPlacementState extends GameState
 {
 	placement_index = -1;
 	current_ship = null;
+	failed_placement = false;
 	constructor(game)
 	{
 		super(game);
@@ -288,7 +403,15 @@ class ShipPlacementState extends GameState
 		{
 			if (this.placement_index < this.game.player_board.placeable_ships.length - 1)
 			{
-				this.next_ship();
+				if(this.game.player_board.check_valid())
+				{
+					this.next_ship();
+					this.failed_placement = false;
+				}
+				else
+				{
+					this.failed_placement = true;
+				}
 			}
 			else
 			{
@@ -297,7 +420,8 @@ class ShipPlacementState extends GameState
 			}
 		}
 		else if (e.key == "ArrowUp")
-		{
+		{	
+			this.current_ship.y = 
 			this.current_ship.y -= 1;
 		}
 		else if (e.key == "ArrowDown")
@@ -323,6 +447,8 @@ class ShipPlacementState extends GameState
 				this.current_ship.r = "h";
 			}
 		}
+		this.current_ship.x = Math.min(Math.max(0, this.current_ship.x),this.game.player_board.side_length-1);
+		this.current_ship.y = Math.min(Math.max(0, this.current_ship.y),this.game.player_board.side_length-1);
 		game.draw();
 	}
 	draw(game)
@@ -340,6 +466,14 @@ class ShipPlacementState extends GameState
 		write(f0,"<span style='color:yellow;'><BR><BR>CURRENT PLACEMENT:</span>");
 		write(f0,"<BR>SHIP: " + this.current_ship.name);
 		write(f0,"<BR>TYPE: " + this.current_ship.type_name);
+		if (this.failed_placement)
+		{
+			write(f0,"<BR><BR><span style='color:red;'>INVALID PLACEMENT</span>");
+		}
+		else
+		{
+			write(f0,"<BR><BR>");
+		}
 		game.player_board.print_board();
 	}
 }
@@ -347,10 +481,17 @@ class ShipPlacementState extends GameState
 class FightState extends GameState
 {
 	current_board = null;
+	game_end_status = null;
 	on_enter()
 	{
 		GameState.prototype.on_enter.call(this);
 		this.current_board = this.game.computer_board;
+	}
+	computer_shoot()
+	{
+		var x = Math.floor(Math.random() * this.game.player_board.side_length);
+		var y = Math.floor(Math.random() * this.game.player_board.side_length);
+		this.game.player_board.shoot(x, y);
 	}
 	handle_input(e, game)
 	{
@@ -371,6 +512,22 @@ class FightState extends GameState
 			{
 				this.game.computer_board.shoot(	this.game.computer_board.current_selection[0],
 												this.game.computer_board.current_selection[1]);
+				this.computer_shoot();
+				if (this.game.computer_board.has_lost())
+				{
+					if (this.game.player_board.has_lost())
+					{
+						this.game_end_status = "DRAW";
+					}
+					else
+					{
+						this.game_end_status = "PLAYER VICTORIOUS.";
+					}
+				}
+				else if (this.game.player_board.has_lost())
+				{
+					this.game_end_status = "COMPUTER VICTORIOUS";
+				}
 			}
 		}
 		else if (e.key == "ArrowUp")
@@ -394,17 +551,26 @@ class FightState extends GameState
 	draw(game)
 	{
 		GameState.prototype.draw.call(this);
-		write(f0,"<span style='color:yellow;'><BR><BR> WARFARE CONTROLS:</span>");
-		write(f0,"<BR> MOVE AIM: ARROW KEYS");
-		write(f0,"<BR> FIRE: ENTER");
-		write(f0,"<BR> SWITCH BOARDS: SPACE<BR>");
-		if (this.current_board == this.game.player_board)
+		if (this.game_end_status != null)
 		{
-			write(f0,"<BR> CURRENT VIEWPORT: FRIENDLY FORCES");
+			write(f0,"<BR>THE BATTLE HAS ENDED: " + this.game_end_status);
+			write(f0,"<BR>PRESS ESCAPE TO EXIT");
 		}
 		else
 		{
-			write(f0,"<BR> CURRENT VIEWPORT: <span style='color:red;'>HOSTILE FORCES</span>");
+			write(f0,"<span style='color:yellow;'><BR><BR> WARFARE CONTROLS:</span>");
+			write(f0,"<BR> MOVE AIM: ARROW KEYS");
+			write(f0,"<BR> FIRE: ENTER");
+			write(f0,"<BR> SWITCH BOARDS: SPACE<BR>");
+			if (this.current_board == this.game.player_board)
+			{
+				write(f0,"<BR> CURRENT VIEWPORT: FRIENDLY FORCES");
+			}
+			else
+			{
+				write(f0,"<BR> CURRENT VIEWPORT: <span style='color:red;'>HOSTILE FORCES</span>");
+			}
+			write(f0,"<BR>STATUS: " + this.current_board.status);
 		}
 		this.current_board.print_board();
 	}
@@ -429,16 +595,6 @@ class BattleshipExtension
 		};
 		// Cache and clear the terminal
 		this.old_terminal_buffer = read(f0);
-		//BattleshipExtension.player_board.place_ship("c", 2, 2);
-		//var ship = new Ship();
-		//ship.init();
-		//var ship2 = new Ship();
-		//ship2.init();
-		//ship2.x = 3;
-		//ship2.y = 4;
-		//this.player_board.place_ship(ship);
-		//this.player_board.place_ship(ship2);
-		//this.player_board.print_board();
 		this.draw();
 	}
 	change_state(new_state_key)
@@ -451,13 +607,13 @@ class BattleshipExtension
 		this.side = side;
 		if (side == "USN")
 		{
-			this.player_board = new USNBattleshipBoard();
-			this.computer_board = new VMFBattleshipBoard();
+			this.player_board = new USNBattleshipBoard(true);
+			this.computer_board = new VMFBattleshipBoard(false);
 		}
 		else if (side == "VMF")
 		{
-			this.player_board = new VMFBattleshipBoard();
-			this.computer_board = new USNBattleshipBoard();
+			this.player_board = new VMFBattleshipBoard(true);
+			this.computer_board = new USNBattleshipBoard(false);
 		}
 		else
 		{
@@ -472,37 +628,14 @@ class BattleshipExtension
 	}
 	handle_input(e)
 	{
-		this.states[this.current_state].handle_input(e, this)
-		if (false)
+		if (e.key == "Escape")
 		{
-			if (e.key == "Escape")
-			{
-				unregister_input_handler();
-				write(f0, this.old_terminal_buffer, true);
-				pos_end_app();
-				return;
-			}
-			else if (e.key == "ArrowUp")
-			{
-				this.player_board.move_selection_up();
-				this.draw();
-			}
-			else if (e.key == "ArrowDown")
-			{
-				this.player_board.move_selection_down();
-				this.draw();
-			}
-			else if (e.key == "ArrowLeft")
-			{
-				this.player_board.move_selection_left();
-				this.draw();
-			}
-			else if (e.key == "ArrowRight")
-			{
-				this.player_board.move_selection_right();
-				this.draw();
-			}
+			unregister_input_handler();
+			write(f0, this.old_terminal_buffer, true);
+			pos_end_app();
+			return;
 		}
+		this.states[this.current_state].handle_input(e, this)
 	}
 	draw()
 	{
