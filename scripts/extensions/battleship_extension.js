@@ -511,7 +511,7 @@ class FightState extends GameState
 {
 	current_board = null;
 	game_end_status = null;
-	// Weights
+	// Expected values for a shot at each point.
 	computer_moves = null;
 	on_enter()
 	{
@@ -526,6 +526,66 @@ class FightState extends GameState
 		}
 	}
 
+	/*
+		Note On AI
+
+		There are currently two components to the game AI: place and shoot.
+
+		Placement:
+		Placement is done entirely randomly and judged entirely based on 
+		validity and not strategy.
+
+		Future work could include cycling between a few placement strategies.
+		These strategies might include:
+		
+		- Placing smaller ships in rows such that they appear to be single 
+		larger ships.
+
+		- Grouping ships in clumps. Possibly clump and one or two distant ships
+
+		- Maximizing distance between ships.
+
+		The problem is that each of these strategies gives the opponent a lot of
+		solid information once they identify which strategy is being used. For
+		that reason, random placment and a better shooting AI seems like the
+		best way forward.
+
+		Shooting:
+		Shooting is currently done by keeping track of the expected value of 
+		a shot at each point on the board. All values are initially 0. Points
+		that have already been tried have an arbitrarily low value of -100.
+		Points that are adjacent to a miss are lessened in value, and points
+		that are adjacent to a hit are increased in value. This means the AI
+		will choose to always fire adjacent to previous hits until it has 
+		exhausted itself of adjacent points and it will prefer multi-adjacents
+		over points that are only adjacent to a single hit.
+
+		This strategy looks relatively good, but has some drawbacks:
+
+		- Overkill: The AI doesn't have any way of decrementing the value of 
+		adjacent squares once the nearby hits have resulted in a sinking. This
+		means the AI will tend to keep shooting near an already destroyed ship
+		while it exhausts all the remaining adjacent squares. A possible 
+		solution would be to return whether a ship was destroyed from shoot, and
+		then use that information to try to predict what squares the destroyed
+		ship inhabited (this wouldn't be 100% accurate) and try to decrement the
+		squares adjacent to them accordingly. Another solution would do the same
+		but also somehow link each increase in weighting to the hit that 
+		produced it. That way, we could very accurately remove the weightings 
+		for destroyed ships.
+
+		- Ship Shape Context: It doesn't consider the shape of ships. If two 
+		hits are found adjacent to eachother, squares along the connecting axis
+		of those two hits are way above average value and points along the 
+		other axis are probably actually below the value of random points. 
+		Currently, we only look at direct adjacency and have no sense of this.
+		
+		Other considerations:
+
+		- Non-uniform initial scores. For instance, points on edges are lower
+		value than interior points. Attempting to build some kind of ruleset for
+		this *could* cause the AI to be more exploitable, however.
+	*/
 	computer_shoot()
 	{
 		var best_score = 0;
