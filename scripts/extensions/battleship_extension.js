@@ -1,3 +1,5 @@
+dev_mode = true;
+
 class Ship
 {
 	x = 0;
@@ -73,7 +75,11 @@ class Ship
 		{
 			if (!this.hits[i] && !is_player)
 			{
-				continue;
+				// In Dev mode, no fog of war.
+				if (!dev_mode)
+				{
+					continue;
+				}
 			}
 			var raw_glyph = is_player ? this.glyph : "X";
 			var glyph = "<span style='color:lightgray;'>" + raw_glyph  + "</span>";
@@ -171,7 +177,7 @@ class BattleshipBoard
 			if (shot[0] == x && shot[1] == y)
 			{
 				// SHOT IS A REPEAT
-				return;
+				return false;
 			}
 		}
 		this.num_missile++;
@@ -206,7 +212,7 @@ class BattleshipBoard
 						this.status = "<span style='color:red;'>FOXTROT-" + this.num_missile + " AWAY.........ENEMY SHIP DESTROYED!</span>";
 					}
 				}
-				return;
+				return true;
 			}
 		}
 		if (this.is_player)
@@ -217,6 +223,7 @@ class BattleshipBoard
 		{
 			this.status = "<span style='color:yellow;'>FOXTROT-" + this.num_missile + " AWAY.........NEGATIVE IMPACT!</span>";
 		}
+		return false;
 	}
 	has_lost()
 	{
@@ -376,13 +383,35 @@ class ShipPlacementState extends GameState
 	}
 	computer_place_ships()
 	{
-		for (var i = 0; i < this.game.computer_board.placeable_ships.length; i++)
+		for (var shipIdx = 0; shipIdx < this.game.computer_board.placeable_ships.length; shipIdx++)
 		{
-			var ship = this.game.computer_board.placeable_ships[i];
-			ship.r = "h";
-			ship.x = i;
-			ship.y = 0;
+			var placed = false;
+			var ship = this.game.computer_board.placeable_ships[shipIdx];
 			this.game.computer_board.place_ship(ship);
+			const orientations = ["w","h"];
+			var possible_locations = [];
+			var sideLength = this.game.player_board.side_length;
+			for (var i = 0; i < sideLength*sideLength; i++)
+			{
+				possible_locations.push(i);
+			}
+			while (placed == false)
+			{
+				var idx = possible_locations[Math.floor(Math.random() * possible_locations.length)];
+				var x = idx % sideLength;
+				var y = Math.floor(idx / sideLength);
+				ship.r = orientations[Math.floor(Math.random() *orientations.length)];
+				ship.x = x;
+				ship.y = y;
+				if (this.game.computer_board.check_valid())
+				{
+					placed = true;
+				}
+				else
+				{
+					possible_locations.splice(idx, 1);
+				}
+			}
 		}
 	}
 	next_ship()
@@ -482,16 +511,70 @@ class FightState extends GameState
 {
 	current_board = null;
 	game_end_status = null;
+	// Weights
+	computer_moves = null;
 	on_enter()
 	{
 		GameState.prototype.on_enter.call(this);
 		this.current_board = this.game.computer_board;
+		var sideLength = this.game.player_board.side_length;
+		this.computer_moves = [];
+		for (var i = 0; i < sideLength*sideLength; i++)
+		{
+			// All positions have zero weighting initially. 
+			this.computer_moves.push(0);
+		}
 	}
+
 	computer_shoot()
 	{
-		var x = Math.floor(Math.random() * this.game.player_board.side_length);
-		var y = Math.floor(Math.random() * this.game.player_board.side_length);
-		this.game.player_board.shoot(x, y);
+		var best_score = 0;
+		var best_moves = [];
+		for (var i = 0; i < this.computer_moves.length; i++)
+		{
+			if (this.computer_moves[i] > best_score)
+			{
+				// New best, throwout old best moves.
+				best_moves = [];
+				best_moves.push(i);
+				best_score = this.computer_moves[i];
+			}
+			else if (this.computer_moves[i] == best_score)
+			{
+				best_moves.push(i);
+			}
+		}
+		if (best_moves.length == 0)
+			// Something went wrong. Can't shoot.
+			return;
+
+		// Select at random from best moves
+		var move = best_moves[Math.floor(Math.random() * best_moves.length)];
+		this.computer_moves[move] = -100; // arbitrarily low.
+		var sideLength = this.game.player_board.side_length;
+
+		var x = move % sideLength;
+		var y = Math.floor(move / sideLength);
+		var hit = this.game.player_board.shoot(x, y);
+		var adjacentDelta = -1;
+		if (hit)
+		{
+			// Mark adjacent moves as more desirable
+			adjacentDelta = 1;
+		}
+		//var adjacents = [move-1, move+1,move-sideLength,move+sideLength];
+		var adjacents = [[x+1,y],[x,y+1],[x-1,y],[x,y-1]];
+		for (var i = 0; i < adjacents.length; i++)
+		{
+			var adjX = adjacents[i][0];
+			var adjY = adjacents[i][1];
+			var adjIdx = (adjY * sideLength) + adjX;
+			// Make sure this is in-bounds
+			if (adjX >= 0 && adjX < sideLength && adjY >= 0 && adjY < sideLength)
+			{
+				this.computer_moves[adjIdx] = this.computer_moves[adjIdx] + adjacentDelta;
+			}
+		}
 	}
 	handle_input(e, game)
 	{
@@ -513,6 +596,13 @@ class FightState extends GameState
 				this.game.computer_board.shoot(	this.game.computer_board.current_selection[0],
 												this.game.computer_board.current_selection[1]);
 				this.computer_shoot();
+				
+				// UX: Switch back to player board so they can see computer shot.
+				if (!dev_mode)
+				{
+					this.current_board = this.game.player_board;
+				}
+
 				if (this.game.computer_board.has_lost())
 				{
 					if (this.game.player_board.has_lost())
@@ -572,7 +662,15 @@ class FightState extends GameState
 			}
 			write(f0,"<BR>STATUS: " + this.current_board.status);
 		}
-		this.current_board.print_board();
+		if (dev_mode)
+		{
+			this.game.player_board.print_board();
+			this.game.computer_board.print_board();
+		}
+		else
+		{
+			this.current_board.print_board();
+		}
 	}
 }
 
@@ -600,8 +698,10 @@ class BattleshipExtension
 	change_state(new_state_key)
 	{
 		this.current_state = new_state_key;
-		this.states[this.current_state].on_enter();
+		this.states[this.current_state].on_enter();	
+		this.draw();
 	}
+
 	select_side(side)
 	{
 		this.side = side;
