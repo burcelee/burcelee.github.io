@@ -1,4 +1,4 @@
-dev_mode = true;
+dev_mode = false;
 
 class Ship
 {
@@ -794,6 +794,10 @@ class BattleshipExtension
 			write(f0, this.old_terminal_buffer, true);
 			pos_end_app();
 			return;
+		}
+		else if (e.key == "g")
+		{
+			dev_mode = !dev_mode;
 		}
 		this.states[this.current_state].handle_input(e, this)
 	}
