@@ -734,7 +734,7 @@ class FightState extends GameState
 	}
 }
 
-class BattleshipExtension 
+class BattleshipGame 
 {
 	old_terminal_buffer = null;
 	side = "NO SELECTION";
@@ -784,7 +784,7 @@ class BattleshipExtension
 	}
 	static s_handle_input(e)
 	{
-		BattleshipExtension.s_game_instance.handle_input(e);
+		BattleshipGame.s_game_instance.handle_input(e);
 	}
 	handle_input(e)
 	{
@@ -805,16 +805,22 @@ class BattleshipExtension
 	{
 		this.states[this.current_state].draw(this)
 	}
-	static battleship(args)
+	static start(args)
 	{
 		pos_start_app(null);
 		
-		BattleshipExtension.s_game_instance = new BattleshipExtension();
-		register_input_handler(BattleshipExtension.s_handle_input);
+		BattleshipGame.s_game_instance = new BattleshipGame();
+		register_input_handler(BattleshipGame.s_handle_input);
 	}
+
+}
+
+class BattleshipExtension
+{
 	load()
 	{
-		add_function_file("/bin/battleship", BattleshipExtension.battleship);
+		add_function_file("/bin/battleship", BattleshipGame.start);
 	}
 }
+
 add_extension(new BattleshipExtension());
